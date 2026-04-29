@@ -117,33 +117,12 @@ CREATE TABLE SpaceObjectCharacteristic (
 );
 
 
-CREATE OR REPLACE FUNCTION check_ship_activity()
-RETURNS TRIGGER AS
-$$
-DECLARE
-    ship_end_time TIMESTAMP;
-BEGIN
-    SELECT s.ship_end_time
-    INTO ship_end_time
-    FROM ObservationTarget ot
-    JOIN SpaceShip s ON ot.ship_id = s.id
-        WHERE ot.id = NEW.observation_target_id;
-
-    IF ship_end_time IS NOT NULL
-       AND ship_end_time < NEW.observation_time
-    THEN
-        RAISE EXCEPTION
-            'Нельзя добавить наблюдение: маршрут корабля уже завершён';
-    END IF;
-
-    RETURN NEW;
-END;
-$$
-LANGUAGE plpgsql;
-
-
-CREATE TRIGGER trg_check_ship_activity
-    BEFORE INSERT
-    ON Observation
-    FOR EACH ROW
-    EXECUTE FUNCTION check_ship_activity();
+CREATE TABLE CharacteristicLog (
+    id BIGSERIAL PRIMARY KEY,
+    characteristic_id BIGINT NOT NULL
+        REFERENCES Characteristic(id),
+    characteristic_name VARCHAR(100) NOT NULL,
+    old_value VARCHAR(100),
+    new_value VARCHAR(100),
+    update_time TIMESTAMP DEFAULT NOW()
+);
